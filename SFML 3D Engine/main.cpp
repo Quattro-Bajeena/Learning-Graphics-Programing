@@ -1,24 +1,39 @@
-#include <SFML/Graphics.hpp>
+#include "ParaonSimpleRenderingEngine.h"
+#include <random>
+class Paraon3DRenderingEngine : public ParaonSimpleRenderingEngine {
+public:
+    Paraon3DRenderingEngine() {
+
+    }
+private:
+    virtual void Initialize() override {
+
+    }
+
+    virtual void Update(float deltaTime) override {
+        for (int y = 0; y < ScreenSize().y; y++) {
+            for (int x = 0; x < ScreenSize().x; x++) {
+
+
+                DrawPixel(x, y, rand() % 2 ? sf::Color::White : sf::Color::Black);
+            }
+        }
+
+        //DrawLine(sf::Vector2i(50, 0), sf::Vector2i(0, 50), sf::Color::Blue);
+        
+    }
+};
+
+
+
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(200, 200), "SFML works!");
-    sf::CircleShape shape(100.f);
-    shape.setFillColor(sf::Color::Green);
-
-    while (window.isOpen())
-    {
-        sf::Event event;
-        while (window.pollEvent(event))
-        {
-            if (event.type == sf::Event::Closed)
-                window.close();
-        }
-
-        window.clear();
-        window.draw(shape);
-        window.display();
-    }
+    
+    
+    Paraon3DRenderingEngine engine;
+    engine.CreateWindow(100, 100, 8);
+    engine.Play();
 
     return 0;
 }
