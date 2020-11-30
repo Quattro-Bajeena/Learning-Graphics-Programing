@@ -15,11 +15,12 @@ private:
             for (int x = 0; x < ScreenSize().x; x++) {
 
 
-                DrawPixel(x, y, rand() % 2 ? sf::Color::White : sf::Color::Black);
+                //DrawPixel(x, y, rand() % 2 ? sf::Color::White : sf::Color::Black);
             }
         }
 
         //DrawLine(sf::Vector2i(50, 0), sf::Vector2i(0, 50), sf::Color::Blue);
+        FillTriangle(sf::Vector2i(0, 0), sf::Vector2i(20, 20), sf::Vector2i(90, 40), sf::Color::Blue);
         
     }
 };
