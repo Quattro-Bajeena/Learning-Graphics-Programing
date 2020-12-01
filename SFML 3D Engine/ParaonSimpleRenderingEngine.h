@@ -8,7 +8,7 @@
 #include "math_utilities.h"
 
 class ParaonSimpleRenderingEngine {
-
+private:
 	int width, height;
 	int pixelSize;
 
@@ -45,6 +45,7 @@ class ParaonSimpleRenderingEngine {
         window->clear();
         window->draw(screenSprite);
         window->display();
+		PixelsClear();
 	}
 
 	
@@ -71,6 +72,11 @@ protected:
 
 
 	//Graphics
+	void PixelsClear() {
+		for (int i = 0; i < width * height; i++)
+			pixels[i] = sf::Color::Black;
+	}
+
 	void DrawPixel(int x, int y, sf::Color color) {
 		pixels[y * width + x] = color;
 	}
