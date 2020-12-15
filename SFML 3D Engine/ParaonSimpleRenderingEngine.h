@@ -1,10 +1,4 @@
 #pragma once
-#include <iostream>
-
-#include "SFML/Graphics.hpp"
-#include "SFML/Main.hpp"
-#include "SFML/Window.hpp"
-
 #include "math_utilities.h"
 
 class ParaonSimpleRenderingEngine {
@@ -316,7 +310,7 @@ public:
 		this->height = height;
 		this->pixelSize = pixelSize;
 		window = new sf::RenderWindow(sf::VideoMode(width * pixelSize, height * pixelSize), "Paraon Rendring Engine");
-		window->setVerticalSyncEnabled(true);
+		//window->setVerticalSyncEnabled(true);
 
 		screenTexture.create(width, height);
 		screenSprite.setTexture(screenTexture);
