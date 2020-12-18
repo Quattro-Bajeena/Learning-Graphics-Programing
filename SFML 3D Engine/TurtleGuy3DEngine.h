@@ -6,6 +6,7 @@
 #include "Vector3D.h"
 #include "Matrix3D.h"
 #include "Triangle.h"
+#include "Camera.h"
 
 namespace tge {
 
@@ -15,20 +16,21 @@ public:
     TurtleGuy3DEngine();
 
 private:
-    Matrix3D matProj; //matrix that converts from view sapce to screen sapce
 
-    Vector3D cameraPos; //location of cameara in world sapce
-    Vector3D lookDir; //direction vector along he direction camera pints
+    Matrix3D matProj; //matrix that converts from view sapce to screen sapce
 
     Vector3D lightDirection;
 
-    float Yaw; //fps camara rotation in XZ plane
+
+    Camera camera;
     float Theta; //spins the world transform
 
-    float* DepthBuffer = nullptr;
+    float* depthBuffer = nullptr;
+
+    sf::Image testTexture;
 
 
-    std::list<GameObject> gameObjects;
+    std::list<std::shared_ptr<GameObject>> gameObjects;
 
     virtual void Initialize() override;
 
@@ -47,6 +49,9 @@ private:
     void RasterTriangles(const std::vector<Triangle>& triangles_to_raster);
     void FillTriangle(const Triangle& tri);
     void DrawTriangle(const Triangle& tri, sf::Color color);
+    void DrawTexturedTriangle(const Triangle& tri, const sf::Image& texture);
+
+    
 };
 
 }

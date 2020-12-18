@@ -43,7 +43,7 @@ tge::Matrix3D tge::Transform::TransformMatrix() const
 	Matrix3D rotationY = MatRotY(rotation.y);
 	Matrix3D rotationZ = MatRotZ(rotation.z);
 
-	std::cout << position.x <<", " << position.y << ", " << position.z << "|" << rotation.x << ", " << rotation.y << ", " << rotation.z << "\n";
+	//std::cout << position.x <<", " << position.y << ", " << position.z << "|" << rotation.x << ", " << rotation.y << ", " << rotation.z << "\n";
 
 	/*
 	When we say the associativity of * is left-to-right,

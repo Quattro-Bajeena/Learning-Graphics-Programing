@@ -1,11 +1,18 @@
 #include "stdafx.h"
 #include "Mesh.h"
 
+using namespace tge;
+
 tge::Mesh::Mesh() {};
 
 tge::Mesh::Mesh(std::vector<Triangle> tris)
 	:tris(tris)
 {}
+
+std::vector<Triangle> tge::Mesh::GetTris() const
+{
+	return tris;
+}
 
 bool tge::Mesh::LoadFromObjectFile(std::string sFilename, bool bHasTexture) {
 	std::ifstream f(sFilename);
@@ -20,25 +27,28 @@ bool tge::Mesh::LoadFromObjectFile(std::string sFilename, bool bHasTexture) {
 		char line[128];
 		f.getline(line, 128);
 
-		std::strstream s;
-		s << line;
-		char junk;
+		std::stringstream ss;
+		ss << line;
+		std::string junk;
 		if (line[0] == 'v') {
 			if (line[1] == 't') {
+				VectorTex tex;
 
+				ss >> junk >> tex.u >> tex.v;
+				texs.push_back(tex);
 			}
 			else {
 				Vector3D v;
-				s >> junk >> v.x >> v.y >> v.z;
+				ss >> junk >> v.x >> v.y >> v.z;
 				verts.push_back(v);
 			}
 
 		}
 
-		if (!bHasTexture) {
+		if (bHasTexture == false) {
 			if (line[0] == 'f') {
 				int f[3];
-				s >> junk >> f[0] >> f[1] >> f[2];
+				ss >> junk >> f[0] >> f[1] >> f[2];
 				tris.push_back(
 					{ verts[f[0] - 1], verts[f[1] - 1], verts[f[2] - 1] }
 				);
@@ -46,15 +56,15 @@ bool tge::Mesh::LoadFromObjectFile(std::string sFilename, bool bHasTexture) {
 		}
 		else {
 			if (line[0] == 'f') {
-				s >> junk;
+				ss >> junk;
 
 				std::string tokens[6];
 				int nTokenCount = -1;
 
 
-				while (!s.eof())
+				while (!ss.eof())
 				{
-					char c = s.get();
+					char c = ss.get();
 					if (c == ' ' || c == '/')
 						nTokenCount++;
 					else
@@ -73,3 +83,15 @@ bool tge::Mesh::LoadFromObjectFile(std::string sFilename, bool bHasTexture) {
 
 	return true;
 }
+
+void tge::Mesh::LoadTexture(std::string filename)
+{
+	texture.loadFromFile(filename);
+}
+
+const sf::Image& tge::Mesh::GetTexture() const
+{
+	return texture;
+}
+
+

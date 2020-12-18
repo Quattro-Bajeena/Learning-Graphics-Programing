@@ -17,25 +17,29 @@ void TurtleGuy3DEngine::Initialize() {
 
 
     Mesh teapot_mesh;
-    teapot_mesh.LoadFromObjectFile("teapot.obj");
+    teapot_mesh.LoadFromObjectFile("teapot.obj", true);
     
-    //Projection Matrix
-    GameObject teapot(teapot_mesh);
-    //teapot.AddComponent<TestCubeScript>();
 
-    gameObjects.push_back(std::move(teapot));
-    gameObjects.back().AddComponent<TestCubeScript>();
+    std::shared_ptr<GameObject> teapot = std::make_shared<GameObject>(teapot_mesh);
+    teapot->AddComponent<TestCubeScript>();
+
+    gameObjects.push_back(teapot);
+
+    testTexture.loadFromFile("teapot texture.png");
+        
 
     float fFov = 60.f;
     float fAspectRatio = (float)ScreenHeight() / (float)ScreenWidth();
     float fNear = 0.1f;
     float fFar = 1000.f;
 
-    matProj = MatProject(fFov, fAspectRatio, fNear, fFar);
+    camera = Camera(fFov, fAspectRatio, fNear, fFar);
+
+    matProj = camera.GetProjMatrix();
 
     lightDirection = Vector3D(0, 1, -1).Normalized();
 
-    DepthBuffer = new float[ScreenWidth() * ScreenHeight()];
+    depthBuffer = new float[ScreenWidth() * ScreenHeight()];
 
 }
 
@@ -88,8 +92,8 @@ void TurtleGuy3DEngine::InitializeObjects()
 
 void TurtleGuy3DEngine::UpdateObjects(float deltaTime)
 {
-    for (GameObject& gameObject : gameObjects) {
-        gameObject.Update(deltaTime);
+    for (std::shared_ptr<GameObject>& gameObject : gameObjects) {
+        gameObject->Update(deltaTime);
     }
 }
 
@@ -97,12 +101,12 @@ void TurtleGuy3DEngine::RenderObjects() {
 
     Matrix3D view_matrix = CreateViewMatrix();
 
-    for (const GameObject& object : gameObjects) {
+    for (const std::shared_ptr<GameObject>& object : gameObjects) {
 
 
-        Matrix3D transform_matrix = object.transform.TransformMatrix();
+        Matrix3D transform_matrix = object->transform.TransformMatrix();
 
-        std::vector<Triangle> triangles_to_raster = PrepMeshToRaster(object.mesh, transform_matrix, view_matrix);
+        std::vector<Triangle> triangles_to_raster = PrepMeshToRaster(object->mesh, transform_matrix, view_matrix);
 
         std::sort(triangles_to_raster.begin(), triangles_to_raster.end(),
             [](Triangle& t1, Triangle& t2)
@@ -113,7 +117,7 @@ void TurtleGuy3DEngine::RenderObjects() {
             });
 
         for (int i = 0; i < ScreenWidth() * ScreenHeight(); i++)
-            DepthBuffer[i] = 0.f;
+            depthBuffer[i] = 0.f;
 
 
         RasterTriangles(triangles_to_raster);
@@ -124,48 +128,48 @@ void TurtleGuy3DEngine::RenderObjects() {
 
 void TurtleGuy3DEngine::UpdateInput(float deltaTime) {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
-        cameraPos.x += 8 * deltaTime;
+        camera.transform.position.x += 8 * deltaTime;
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
-        cameraPos.x -= 8 * deltaTime;
+        camera.transform.position.x -= 8 * deltaTime;
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-        cameraPos.y -= 8 * deltaTime;
+        camera.transform.position.y -= 8 * deltaTime;
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-        cameraPos.y += 8 * deltaTime;
+        camera.transform.position.y += 8 * deltaTime;
     }
 
-    Vector3D forward = lookDir * (8 * deltaTime);
-    Matrix3D look_rotation = MatRotY(-0.5 * M_PI);
-    Vector3D look_right = look_rotation * forward;
+    Vector3D forward = camera.LookDir() * (8 * deltaTime);
+
+    Vector3D look_right = MatRotY(-0.5 * M_PI) * forward;
     Vector3D right = look_right * (32 * deltaTime);
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
-        cameraPos = cameraPos + right;
+        camera.transform.position +=  right;
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
-        cameraPos = cameraPos - right;
+        camera.transform.position =- right;
 
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-        cameraPos = cameraPos + forward;
+        camera.transform.position += forward;
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-        cameraPos = cameraPos - forward;
+        camera.transform.position -= forward;
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-        Yaw -= deltaTime;
+        camera.transform.rotation.y -= deltaTime;
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-        Yaw += deltaTime;
+        camera.transform.rotation.y += deltaTime;
     }
 }
 
 Matrix3D TurtleGuy3DEngine::CreateViewMatrix() {
-    lookDir = MatRotY(Yaw) * Vector3D(0, 0, 1);
-    Vector3D target = cameraPos + lookDir;
-    Matrix3D matCamera = MatLookAt(cameraPos, target, Vector3D(0, 1, 0));
+
+    Vector3D target = camera.transform.position + camera.LookDir();
+    Matrix3D matCamera = MatLookAt(camera.transform.position, target, Vector3D(0, 1, 0));
     Matrix3D mat_view = MatQuickInverse(matCamera);
     return mat_view;
 }
@@ -173,7 +177,7 @@ Matrix3D TurtleGuy3DEngine::CreateViewMatrix() {
 std::vector<Triangle> TurtleGuy3DEngine::PrepMeshToRaster(const Mesh& mesh, Matrix3D transform, Matrix3D view_matrix) {
     std::vector<Triangle> triangles_to_raster;
 
-    for (const Triangle& tri : mesh.tris) {
+    for (const Triangle tri : mesh.GetTris()) {
 
         Triangle tri_transformed = transform * tri;
 
@@ -181,7 +185,7 @@ std::vector<Triangle> TurtleGuy3DEngine::PrepMeshToRaster(const Mesh& mesh, Matr
         Vector3D line2 = tri_transformed.points[2] - tri_transformed.points[0];
         Vector3D tri_normal = CrossProduct(line1, line2).Normalized();
 
-        Vector3D camera_ray = tri_transformed.points[0] - cameraPos;
+        Vector3D camera_ray = tri_transformed.points[0] - camera.transform.position;
 
         if (DotProduct(tri_normal, camera_ray) < 0.f) {
 
@@ -200,13 +204,13 @@ std::vector<Triangle> TurtleGuy3DEngine::PrepMeshToRaster(const Mesh& mesh, Matr
 
                 Triangle tri_projected = matProj * tri_clipped[n];
 
-                //for (int i = 0; i < 3; i++) {
-                //    tri_projected.uvCords[i].u /= tri_projected.points[i].w;
-                //    tri_projected.uvCords[i].v /= tri_projected.points[i].w;
-                //    tri_projected.uvCords[i].w = 1.f / tri_projected.points[i].w;
-                //}
+                for (int i = 0; i < 3; i++) {
+                    tri_projected.uvCords[i].u /= tri_projected.points[i].w;
+                    tri_projected.uvCords[i].v /= tri_projected.points[i].w;
+                    tri_projected.uvCords[i].w = 1.f / tri_projected.points[i].w;
+                }
 
-                //tri_projected.ScaleUvByW();
+                tri_projected.ScaleUvByW();
                 tri_projected.ScalePointsByW();
 
                 for (int i = 0; i < 3; i++) {
@@ -287,8 +291,9 @@ void TurtleGuy3DEngine::RasterTriangles(const std::vector<Triangle>& triangles_t
         }
 
         for (const Triangle& tri : triangles_list) {
-            FillTriangle(tri);
-            DrawTriangle(tri, sf::Color::Black);
+            //FillTriangle(tri);
+            //DrawTriangle(tri, sf::Color::Black);
+            DrawTexturedTriangle(tri, testTexture);
         }
 
     }
@@ -314,6 +319,32 @@ void TurtleGuy3DEngine::DrawTriangle(const Triangle& tri, sf::Color color) {
 
     ParaonSimpleRenderingEngine::DrawTriangle(point1, point2, point3, color);
 }
+
+void TurtleGuy3DEngine::DrawTexturedTriangle(const Triangle& tri, const sf::Image& texture)
+{
+
+    int x1 = tri.points[0].x; int y1 = tri.points[0].y; float w1 = tri.points[0].w;
+    int x2 = tri.points[1].x; int y2 = tri.points[1].y; float w2 = tri.points[1].w;
+    int x3 = tri.points[2].x; int y3 = tri.points[2].y; float w3 = tri.points[2].w;
+
+    float u1 = tri.uvCords[0].u; float v1 = tri.uvCords[0].v;
+    float u2 = tri.uvCords[1].u; float v2 = tri.uvCords[1].v;
+    float u3 = tri.uvCords[2].u; float v3 = tri.uvCords[2].v;
+
+    //std::cout << u1 << ";" << v1 << ";" << w1 << "\n";
+
+    ParaonSimpleRenderingEngine::TexturedTriangle(
+        x1, y1, u1, v1, w1,
+        x2, y2, u2, v2, w2,
+        x3, y3, u3, v3, w3,
+        depthBuffer, texture
+    );
+}
+
+
+
+
+
 }
 
 
