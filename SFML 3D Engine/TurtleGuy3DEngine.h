@@ -25,7 +25,10 @@ private:
     Camera camera;
     float Theta; //spins the world transform
 
-    float* depthBuffer = nullptr;
+    sf::Vector2i mousePos;
+
+    //float* depthBuffer = nullptr;
+    std::vector<float> depthBuffer;
 
     sf::Image testTexture;
 

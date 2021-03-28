@@ -10,14 +10,14 @@ namespace tge {
 
 
 TurtleGuy3DEngine::TurtleGuy3DEngine() {
-
+    
 }
 
 void TurtleGuy3DEngine::Initialize() {
 
-
+    testTexture.loadFromFile("cube texture.png");
     Mesh teapot_mesh;
-    teapot_mesh.LoadFromObjectFile("teapot.obj", true);
+    teapot_mesh.LoadFromObjectFile("cube.obj", true);
     
 
     std::shared_ptr<GameObject> teapot = std::make_shared<GameObject>(teapot_mesh);
@@ -25,7 +25,7 @@ void TurtleGuy3DEngine::Initialize() {
 
     gameObjects.push_back(teapot);
 
-    testTexture.loadFromFile("teapot texture.png");
+    
         
 
     float fFov = 60.f;
@@ -39,7 +39,9 @@ void TurtleGuy3DEngine::Initialize() {
 
     lightDirection = Vector3D(0, 1, -1).Normalized();
 
-    depthBuffer = new float[ScreenWidth() * ScreenHeight()];
+    //depthBuffer = new float[ScreenWidth() * ScreenHeight()];
+    depthBuffer.resize(ScreenWidth() * ScreenHeight());
+    mousePos = sf::Mouse::getPosition();
 
 }
 
@@ -88,6 +90,48 @@ void TurtleGuy3DEngine::Update(float deltaTime) {
 
 void TurtleGuy3DEngine::InitializeObjects()
 {
+   
+}
+
+
+
+void TurtleGuy3DEngine::UpdateInput(float deltaTime) {
+
+    sf::Vector2i mouseOffset = sf::Mouse::getPosition() - mousePos;
+
+    camera.transform.rotation.y -= 0.05 * mouseOffset.x * deltaTime;
+    camera.transform.rotation.x += 0.05 * mouseOffset.y * deltaTime;
+
+    //std::cout << camera.transform.rotation.y<< ";" << camera.transform.rotation.x << "\n";
+    
+
+    mousePos = sf::Mouse::getPosition();
+
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
+        camera.transform.position.y -= 8 * deltaTime;
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
+        camera.transform.position.y += 8 * deltaTime;
+    }
+
+    Vector3D forward = camera.LookDir();
+    Vector3D look_right = MatRotY(-0.5 * M_PI) * forward;
+
+
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+        camera.transform.position += 6 * forward * deltaTime;
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+        camera.transform.position -= 6 * forward * deltaTime;
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+        camera.transform.position += 4 * look_right * deltaTime;
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+        camera.transform.position -= 4* look_right * deltaTime;
+    }
 }
 
 void TurtleGuy3DEngine::UpdateObjects(float deltaTime)
@@ -126,46 +170,6 @@ void TurtleGuy3DEngine::RenderObjects() {
 
 }
 
-void TurtleGuy3DEngine::UpdateInput(float deltaTime) {
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
-        camera.transform.position.x += 8 * deltaTime;
-    }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
-        camera.transform.position.x -= 8 * deltaTime;
-    }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-        camera.transform.position.y -= 8 * deltaTime;
-    }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-        camera.transform.position.y += 8 * deltaTime;
-    }
-
-    Vector3D forward = camera.LookDir() * (8 * deltaTime);
-
-    Vector3D look_right = MatRotY(-0.5 * M_PI) * forward;
-    Vector3D right = look_right * (32 * deltaTime);
-
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
-        camera.transform.position +=  right;
-
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
-        camera.transform.position =- right;
-
-
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-        camera.transform.position += forward;
-    }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-        camera.transform.position -= forward;
-    }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-        camera.transform.rotation.y -= deltaTime;
-    }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-        camera.transform.rotation.y += deltaTime;
-    }
-}
-
 Matrix3D TurtleGuy3DEngine::CreateViewMatrix() {
 
     Vector3D target = camera.transform.position + camera.LookDir();
@@ -202,6 +206,7 @@ std::vector<Triangle> TurtleGuy3DEngine::PrepMeshToRaster(const Mesh& mesh, Matr
 
             for (int n = 0; n < clipped_triangles; n++) {
 
+                //Project Triangles from 3D --> 2D
                 Triangle tri_projected = matProj * tri_clipped[n];
 
                 for (int i = 0; i < 3; i++) {
@@ -210,7 +215,7 @@ std::vector<Triangle> TurtleGuy3DEngine::PrepMeshToRaster(const Mesh& mesh, Matr
                     tri_projected.uvCords[i].w = 1.f / tri_projected.points[i].w;
                 }
 
-                tri_projected.ScaleUvByW();
+                
                 tri_projected.ScalePointsByW();
 
                 for (int i = 0; i < 3; i++) {
@@ -219,7 +224,7 @@ std::vector<Triangle> TurtleGuy3DEngine::PrepMeshToRaster(const Mesh& mesh, Matr
                 }
 
 
-                Vector3D offset_view = Vector3D(1, 1, 0);
+                Vector3D offset_view = Vector3D(1, 1, 0, 0);
                 tri_projected = tri_projected + offset_view;
 
                 for (int i = 0; i < 3; i++) {
@@ -292,8 +297,10 @@ void TurtleGuy3DEngine::RasterTriangles(const std::vector<Triangle>& triangles_t
 
         for (const Triangle& tri : triangles_list) {
             //FillTriangle(tri);
-            //DrawTriangle(tri, sf::Color::Black);
+            
             DrawTexturedTriangle(tri, testTexture);
+            DrawTriangle(tri, sf::Color::Black);
+
         }
 
     }
@@ -323,13 +330,13 @@ void TurtleGuy3DEngine::DrawTriangle(const Triangle& tri, sf::Color color) {
 void TurtleGuy3DEngine::DrawTexturedTriangle(const Triangle& tri, const sf::Image& texture)
 {
 
-    int x1 = tri.points[0].x; int y1 = tri.points[0].y; float w1 = tri.points[0].w;
-    int x2 = tri.points[1].x; int y2 = tri.points[1].y; float w2 = tri.points[1].w;
-    int x3 = tri.points[2].x; int y3 = tri.points[2].y; float w3 = tri.points[2].w;
+    int x1 = tri.points[0].x; int y1 = tri.points[0].y; 
+    int x2 = tri.points[1].x; int y2 = tri.points[1].y; 
+    int x3 = tri.points[2].x; int y3 = tri.points[2].y; 
 
-    float u1 = tri.uvCords[0].u; float v1 = tri.uvCords[0].v;
-    float u2 = tri.uvCords[1].u; float v2 = tri.uvCords[1].v;
-    float u3 = tri.uvCords[2].u; float v3 = tri.uvCords[2].v;
+    float u1 = tri.uvCords[0].u; float v1 = tri.uvCords[0].v; float w1 = tri.uvCords[0].w;
+    float u2 = tri.uvCords[1].u; float v2 = tri.uvCords[1].v; float w2 = tri.uvCords[1].w;
+    float u3 = tri.uvCords[2].u; float v3 = tri.uvCords[2].v; float w3 = tri.uvCords[2].w;
 
     //std::cout << u1 << ";" << v1 << ";" << w1 << "\n";
 

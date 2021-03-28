@@ -299,9 +299,9 @@ protected:
 		int x1, int y1, float u1, float v1, float w1,
 		int x2, int y2, float u2, float v2, float w2,
 		int x3, int y3, float u3, float v3, float w3,
-		float* depthBuffer, const sf::Image& texture)
+		std::vector<float>& depthBuffer, const sf::Image& texture)
 	{
-
+		//std::cout << u1 << ";" << v1 << "\n";
 
 
 
@@ -391,9 +391,16 @@ protected:
 					tex_w = (1.f - t) * tex_sw + t * tex_ew;
 
 					if (tex_w > depthBuffer[i * ScreenWidth() + j]) {
-						DrawPixel(j, i, texture.getPixel(tex_u / tex_w, tex_v / tex_w));
+
+						int cord_u = std::min( (unsigned int)((tex_u / tex_w) * texture.getSize().x), texture.getSize().x - 1);
+						int cord_v = std::min( (unsigned int)((tex_v / tex_w) * texture.getSize().y), texture.getSize().y - 1);
+
+						sf::Color color = texture.getPixel(cord_u, cord_v );
+						DrawPixel(j, i, color);
 						//std::cout << tex_u / tex_w << ";" << tex_v / tex_w << "\n";
-						depthBuffer[i * ScreenWidth() + j] = tex_w;
+
+						int cords = i * ScreenWidth() + j;
+						depthBuffer[cords] = tex_w;
 					}
 
 					t += tstep;
@@ -461,8 +468,12 @@ protected:
 					tex_w = (1.f - t) * tex_sw + t * tex_ew;
 
 					if (tex_w > depthBuffer[i * ScreenWidth() + j]) {
-						DrawPixel(j, i, texture.getPixel(tex_u / tex_w, tex_v / tex_w));
-						//std::cout << tex_w << "\n";
+						int cord_u = std::min((unsigned int)((tex_u / tex_w) * texture.getSize().x), texture.getSize().x - 1);
+						int cord_v = std::min((unsigned int)((tex_v / tex_w) * texture.getSize().y), texture.getSize().y - 1);
+
+						sf::Color color = texture.getPixel(cord_u, cord_v);
+						
+						DrawPixel(j, i, color);
 						depthBuffer[i * ScreenWidth() + j] = tex_w;
 					}
 
@@ -489,6 +500,7 @@ public:
 		this->pixelSize = pixelSize;
 		window = new sf::RenderWindow(sf::VideoMode(width * pixelSize, height * pixelSize), "Paraon Rendring Engine");
 		//window->setVerticalSyncEnabled(true);
+		window->setMouseCursorVisible(false);
 
 		screenTexture.create(width, height);
 		screenSprite.setTexture(screenTexture);

@@ -17,9 +17,9 @@ public:
 
 	void Update(float deltaTime) override {
 
-		transform.rotation.x +=  0.2 * deltaTime;
-		transform.rotation.y += 0.5 * deltaTime;
-		transform.rotation.z += 0.7 * deltaTime;
+		//transform.rotation.x +=  0.2 * deltaTime;
+		//transform.rotation.y += 0.5 * deltaTime;
+		//transform.rotation.z += 0.7 * deltaTime;
 		
 
 	}
